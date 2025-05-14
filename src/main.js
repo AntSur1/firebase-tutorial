@@ -16,9 +16,10 @@ const firebaseConfig = {
 };
 
 // npm run dev
+//https://console.firebase.google.com/u/0/project/testpage-ad7e1/database/testpage-ad7e1-default-rtdb/data
+//https://firebase.google.com/docs/database/web/read-and-write
+// https://chatgpt.com/
 
-// https://console.firebase.google.com/u/0/project/testpage-ad7e1/database/testpage-ad7e1-default-rtdb/data/~2F
-// https://firebase.google.com/docs/database/web/read-and-write
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
