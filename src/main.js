@@ -1,9 +1,13 @@
+// --- Firebase Initialization ---
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { onAuthStateChanged, setPersistence, inMemoryPersistence, browserSessionPersistence  } from "firebase/auth";
-import { getDatabase, ref, set, push, serverTimestamp, onValue   } from "firebase/database";
+import {
+  getAuth, signInWithPopup, signOut, GoogleAuthProvider,
+  onAuthStateChanged, setPersistence, browserSessionPersistence
+} from "firebase/auth";
+import {
+  getDatabase, ref, push, serverTimestamp, onValue, off
+} from "firebase/database";
 
-// Replace with your actual Firebase config:
 const firebaseConfig = {
   apiKey: "AIzaSyDHhEExzVDJHlzwOjQSJka9qLfLpsjgNHA",
   authDomain: "testpage-ad7e1.firebaseapp.com",
@@ -14,118 +18,189 @@ const firebaseConfig = {
   appId: "1:338672007872:web:d657aa205706bb37ee4b25",
   measurementId: "G-DDTH2KFQ5T"
 };
-
-// npm run dev
-// https://console.firebase.google.com/u/0/project/testpage-ad7e1/database/testpage-ad7e1-default-rtdb/data
-// https://firebase.google.com/docs/database/web/read-and-write
-// https://chatgpt.com/
-
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 const provider = new GoogleAuthProvider();
 
-const testButton = document.getElementById('test');
-const loginButton = document.getElementById('login');
-const messageButton = document.getElementById('messageButton');
-const messageInput = document.getElementById('messageInput');
-const dataPlace = document.getElementById('displayData');
-const profilePic = document.getElementById('profile');
+// --- State ---
+let currentListenerRef = null;
 
-setPersistence(auth, browserSessionPersistence).catch((error) => {
-  console.error("❌ Failed to set persistence:", error);
-});
-
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    console.log("✅ User is signed in:", user.displayName);
-    profilePic.src = user.photoURL;
-    enableDataRead(user);
-  } else {
-    console.log("⛔ No user is signed in.");
+// --- Auth Management ---
+async function setupAuthPersistence() {
+  try {
+    await setPersistence(auth, browserSessionPersistence);
+  } catch (error) {
+    console.error("❌ Failed to set persistence:", error);
   }
-});
+}
 
+function onUserStateChanged(user) {
+  if (user) {
+    console.log("✅ User signed in:", user.displayName);
+    document.getElementById('profile').src = user.photoURL || "";
+    document.getElementById('login').textContent = "Log out";
+    loadUserMessages(user);
+  } else {
+    console.log("⛔ No user signed in.");
+    document.getElementById('profile').src = "";
+    document.getElementById('login').textContent = "Login with Google";
+    document.getElementById('displayData').innerHTML = "";
+  }
+}
 
-function enableDataRead(user) {
-  const userMessagesRef = ref(db, 'users/' + user.uid  + '/messages');
-  onValue(userMessagesRef, (snapshot) => {
+// --- Database Read/Write ---
+function detachPreviousListener() {
+  if (currentListenerRef) {
+    off(currentListenerRef);
+    currentListenerRef = null;
+  }
+}
+
+function loadUserMessages(user) {
+  document.getElementById('displayData').innerHTML = "Loading messages...";
+  detachPreviousListener();
+
+  const messagesRef = ref(db, `users/${user.uid}/messages`);
+  currentListenerRef = messagesRef;
+
+  onValue(messagesRef, (snapshot) => {
     const data = snapshot.val();
-    let output = "";
-
-    for (const messageId in data) {
-      const messageData = data[messageId];
-      const message = messageData.message;
-      const timestamp = new Date(messageData.timestamp).toLocaleString();
-
-      output += `<p><strong>Message:</strong> ${message}<br>`;
-      output += `<strong>Time:</strong> ${timestamp}</p><hr>`;
+    if (!data) {
+      document.getElementById('displayData').innerHTML = "No messages found.";
+      return;
     }
 
-    dataPlace.innerHTML = output;
+    let html = Object.values(data).map(({ message, timestamp }) => `
+      <p><strong>Message:</strong> ${message}<br>
+      <strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</p><hr>
+    `).join("");
+    
+    document.getElementById('displayData').innerHTML = html;
   });
 }
 
-function sendMessage() {
-  const message = messageInput.value;
+function loadUserImages(user) {
+  document.getElementById('displayData').innerHTML = "Loading images...";
+  detachPreviousListener();
 
-  if (message.trim() === "") {
-    alert("Please enter a message.");
-    return;
-  }
+  const imagesRef = ref(db, `users/${user.uid}/images`);
+  currentListenerRef = imagesRef;
 
-  writeUserData(message);
-  
-  messageInput.value = "";
+  onValue(imagesRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      document.getElementById('displayData').innerHTML = "No images found.";
+      return;
+    }
+
+    let html = Object.values(data).map(({ image, title, timestamp }) => `
+      <div style="margin-bottom: 20px;">
+        <strong>Title:</strong> ${title}<br>
+        <strong>Time:</strong> ${new Date(timestamp).toLocaleString()}<br>
+        <img src="${image}" alt="${title}" style="max-width: 300px; display: block; margin-top: 10px;">
+      </div><hr>
+    `).join("");
+    
+    document.getElementById('displayData').innerHTML = html;
+  });
 }
 
-
-function writeUserData(message) {
+function writeUserMessage(message) {
   const user = auth.currentUser;
-
-  if (!user) {
-    alert("not logged in")
-    return;
-  }
-  const userId = user.uid;
-
-  const userMessagesRef = ref(db, 'users/' + userId + '/messages');
-  push(userMessagesRef, {
-    message: message,
-    timestamp: serverTimestamp()
-  })
-  .then(() => {
-    console.log("✅ Data written successfully");
-  })
-  .catch((error) => {
-    console.error("❌ Write failed:", error);
-  });
+  if (!user) return alert("Not logged in");
+  const messagesRef = ref(db, `users/${user.uid}/messages`);
+  return push(messagesRef, { message, timestamp: serverTimestamp() });
 }
 
-loginButton.addEventListener('click', () => {
-  signInWithPopup(auth, provider)
-    .then((result) => {
-      const user = result.user;
-      console.log(user);
+function writeUserImage(imageData, title) {
+  const user = auth.currentUser;
+  if (!user) return Promise.reject("Not logged in");
+  const imagesRef = ref(db, `users/${user.uid}/images`);
+  return push(imagesRef, { image: imageData, title, timestamp: serverTimestamp() });
+}
 
-    }).catch((error) => {
-      const errorCode = error.code;
-      const errorMessage = error.message;
-      console.error(errorCode, errorMessage);
+// --- UI Helpers ---
+function clearInputs() {
+  document.querySelector('#uploadImage input[name="file"]').value = "";
+  document.getElementById('preview').innerHTML = "";
+  document.getElementById('titleInput').value = "";
+}
+
+function previewImage(file) {
+  if (!file.type.startsWith('image/')) {
+    document.getElementById('preview').innerHTML = "Please select a valid image.";
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('preview').innerHTML = "";
+    const img = document.createElement('img');
+    img.src = e.target.result;
+    img.style.maxWidth = "300px";
+    img.style.maxHeight = "300px";
+    img.style.marginTop = "10px";
+    document.getElementById('preview').appendChild(img);
+    document.querySelector('#uploadImage input[name="file"]').dataset.base64 = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// --- Event Handlers ---
+function setupEventListeners() {
+  document.getElementById('login').addEventListener('click', () => {
+    const user = auth.currentUser;
+    if (!user) signInWithPopup(auth, provider).catch(console.error);
+    else signOut(auth).catch(console.error);
   });
 
-  console.log('Login clicked');
-});
+  document.getElementById('messageButton').addEventListener('click', () => {
+    const message = document.getElementById('messageInput').value.trim();
+    if (!message) return alert("Please enter a message.");
+    writeUserMessage(message).then(() => document.getElementById('messageInput').value = "");
+  });
 
-messageButton.addEventListener('click', () => {
-  sendMessage();
-})
+  document.querySelector('#uploadImage input[name="file"]').addEventListener('change', () => {
+    const file = document.querySelector('#uploadImage input[name="file"]').files[0];
+    if (file) previewImage(file);
+  });
 
-testButton.addEventListener('click', () =>{
-  console.log(auth.currentUser.uid);
-});
+  document.getElementById('uploadImage').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const file = document.querySelector('#uploadImage input[name="file"]').files[0];
+    const title = document.getElementById('titleInput').value.trim();
+    if (!file || !title) return alert("Please select a file and provide a title.");
+    writeUserImage(document.querySelector('#uploadImage input[name="file"]').dataset.base64, title)
+      .then(() => {
+        console.log("✅ Image uploaded");
+        clearInputs();
+      })
+      .catch(err => alert("❌ Upload failed: " + err));
+  });
 
+  document.getElementById('showMessages').addEventListener('click', () => {
+    const user = auth.currentUser;
+    if (user) loadUserMessages(user);
+  });
 
+  document.getElementById('showImages').addEventListener('click', () => {
+    const user = auth.currentUser;
+    if (user) loadUserImages(user);
+  });
 
+  document.getElementById('test').addEventListener('click', () => {
+    clearInputs();
+    console.log("Test button clicked");
+  });
 
+  window.addEventListener('DOMContentLoaded', clearInputs);
+}
+
+// --- Initialization ---
+async function init() {
+  await setupAuthPersistence();
+  onAuthStateChanged(auth, onUserStateChanged);
+  setupEventListeners();
+}
+
+init();
