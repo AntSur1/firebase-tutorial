@@ -23,6 +23,20 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 const provider = new GoogleAuthProvider();
 
+// --- DOM Elements ---
+const testButton = document.getElementById('test');
+const loginButton = document.getElementById('login');
+const messageButton = document.getElementById('messageButton');
+const messageInput = document.getElementById('messageInput');
+const titleInput = document.getElementById('titleInput');
+const dataPlace = document.getElementById('displayData');
+const profilePic = document.getElementById('profile');
+const form = document.getElementById('uploadImage');
+const fileInput = document.querySelector('#uploadImage input[name="file"]');
+const preview = document.getElementById('preview');
+const showMessagesButton = document.getElementById('showMessages');
+const showImagesButton = document.getElementById('showImages');
+
 // --- State ---
 let currentListenerRef = null;
 
@@ -38,14 +52,14 @@ async function setupAuthPersistence() {
 function onUserStateChanged(user) {
   if (user) {
     console.log("✅ User signed in:", user.displayName);
-    document.getElementById('profile').src = user.photoURL || "";
-    document.getElementById('login').textContent = "Log out";
+    profilePic.src = user.photoURL || "";
+    loginButton.textContent = "Log out";
     loadUserMessages(user);
   } else {
     console.log("⛔ No user signed in.");
-    document.getElementById('profile').src = "";
-    document.getElementById('login').textContent = "Login with Google";
-    document.getElementById('displayData').innerHTML = "";
+    profilePic.src = "";
+    loginButton.textContent = "Login with Google";
+    dataPlace.innerHTML = "";
   }
 }
 
@@ -58,7 +72,7 @@ function detachPreviousListener() {
 }
 
 function loadUserMessages(user) {
-  document.getElementById('displayData').innerHTML = "Loading messages...";
+  dataPlace.innerHTML = "Loading messages...";
   detachPreviousListener();
 
   const messagesRef = ref(db, `users/${user.uid}/messages`);
@@ -67,7 +81,7 @@ function loadUserMessages(user) {
   onValue(messagesRef, (snapshot) => {
     const data = snapshot.val();
     if (!data) {
-      document.getElementById('displayData').innerHTML = "No messages found.";
+      dataPlace.innerHTML = "No messages found.";
       return;
     }
 
@@ -75,13 +89,13 @@ function loadUserMessages(user) {
       <p><strong>Message:</strong> ${message}<br>
       <strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</p><hr>
     `).join("");
-    
-    document.getElementById('displayData').innerHTML = html;
+
+    dataPlace.innerHTML = html;
   });
 }
 
 function loadUserImages(user) {
-  document.getElementById('displayData').innerHTML = "Loading images...";
+  dataPlace.innerHTML = "Loading images...";
   detachPreviousListener();
 
   const imagesRef = ref(db, `users/${user.uid}/images`);
@@ -90,7 +104,7 @@ function loadUserImages(user) {
   onValue(imagesRef, (snapshot) => {
     const data = snapshot.val();
     if (!data) {
-      document.getElementById('displayData').innerHTML = "No images found.";
+      dataPlace.innerHTML = "No images found.";
       return;
     }
 
@@ -101,8 +115,8 @@ function loadUserImages(user) {
         <img src="${image}" alt="${title}" style="max-width: 300px; display: block; margin-top: 10px;">
       </div><hr>
     `).join("");
-    
-    document.getElementById('displayData').innerHTML = html;
+
+    dataPlace.innerHTML = html;
   });
 }
 
@@ -122,55 +136,55 @@ function writeUserImage(imageData, title) {
 
 // --- UI Helpers ---
 function clearInputs() {
-  document.querySelector('#uploadImage input[name="file"]').value = "";
-  document.getElementById('preview').innerHTML = "";
-  document.getElementById('titleInput').value = "";
+  fileInput.value = "";
+  preview.innerHTML = "";
+  titleInput.value = "";
 }
 
 function previewImage(file) {
   if (!file.type.startsWith('image/')) {
-    document.getElementById('preview').innerHTML = "Please select a valid image.";
+    preview.innerHTML = "Please select a valid image.";
     return;
   }
   const reader = new FileReader();
   reader.onload = (e) => {
-    document.getElementById('preview').innerHTML = "";
+    preview.innerHTML = "";
     const img = document.createElement('img');
     img.src = e.target.result;
     img.style.maxWidth = "300px";
     img.style.maxHeight = "300px";
     img.style.marginTop = "10px";
-    document.getElementById('preview').appendChild(img);
-    document.querySelector('#uploadImage input[name="file"]').dataset.base64 = e.target.result;
+    preview.appendChild(img);
+    fileInput.dataset.base64 = e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
 // --- Event Handlers ---
 function setupEventListeners() {
-  document.getElementById('login').addEventListener('click', () => {
+  loginButton.addEventListener('click', () => {
     const user = auth.currentUser;
     if (!user) signInWithPopup(auth, provider).catch(console.error);
     else signOut(auth).catch(console.error);
   });
 
-  document.getElementById('messageButton').addEventListener('click', () => {
-    const message = document.getElementById('messageInput').value.trim();
+  messageButton.addEventListener('click', () => {
+    const message = messageInput.value.trim();
     if (!message) return alert("Please enter a message.");
-    writeUserMessage(message).then(() => document.getElementById('messageInput').value = "");
+    writeUserMessage(message).then(() => messageInput.value = "");
   });
 
-  document.querySelector('#uploadImage input[name="file"]').addEventListener('change', () => {
-    const file = document.querySelector('#uploadImage input[name="file"]').files[0];
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
     if (file) previewImage(file);
   });
 
-  document.getElementById('uploadImage').addEventListener('submit', (e) => {
+  form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const file = document.querySelector('#uploadImage input[name="file"]').files[0];
-    const title = document.getElementById('titleInput').value.trim();
+    const file = fileInput.files[0];
+    const title = titleInput.value.trim();
     if (!file || !title) return alert("Please select a file and provide a title.");
-    writeUserImage(document.querySelector('#uploadImage input[name="file"]').dataset.base64, title)
+    writeUserImage(fileInput.dataset.base64, title)
       .then(() => {
         console.log("✅ Image uploaded");
         clearInputs();
@@ -178,17 +192,17 @@ function setupEventListeners() {
       .catch(err => alert("❌ Upload failed: " + err));
   });
 
-  document.getElementById('showMessages').addEventListener('click', () => {
+  showMessagesButton.addEventListener('click', () => {
     const user = auth.currentUser;
     if (user) loadUserMessages(user);
   });
 
-  document.getElementById('showImages').addEventListener('click', () => {
+  showImagesButton.addEventListener('click', () => {
     const user = auth.currentUser;
     if (user) loadUserImages(user);
   });
 
-  document.getElementById('test').addEventListener('click', () => {
+  testButton.addEventListener('click', () => {
     clearInputs();
     console.log("Test button clicked");
   });

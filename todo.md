@@ -13,3 +13,14 @@ https://console.firebase.google.com/u/0/project/testpage-ad7e1/database/testpage
 https://firebase.google.com/docs/database/web/read-and-write
 
 https://chatgpt.com/
+
+
+
+
+
+
+
+
+
+
+npm run deploy
