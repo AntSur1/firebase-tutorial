@@ -88,7 +88,9 @@ function loadUserMessages(user) {
     let html = Object.values(data).map(({ message, timestamp }) => `
       <p><strong>Message:</strong> ${message}<br>
       <strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</p><hr>
-    `).join("");
+    `).reverse().join("");
+
+    console.log(html);
 
     dataPlace.innerHTML = html;
   });
@@ -114,7 +116,7 @@ function loadUserImages(user) {
         <strong>Time:</strong> ${new Date(timestamp).toLocaleString()}<br>
         <img src="${image}" alt="${title}" style="max-width: 300px; display: block; margin-top: 10px;">
       </div><hr>
-    `).join("");
+    `).reverse().join("");
 
     dataPlace.innerHTML = html;
   });
