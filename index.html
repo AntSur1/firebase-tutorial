@@ -3,24 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <title>Firebase Vite Login</title>
-    
-    <script type="module" crossorigin src="/firebase-tutorial/assets/index-DoyD0l74.js"></script>
+    
+    <script type="module" crossorigin src="/firebase-tutorial/assets/index-r_pJzrlj.js"></script>
     <link rel="stylesheet" crossorigin href="/firebase-tutorial/assets/index-CddUPKke.css">
   </head>
   <body>
     <h1>Firebase Login Example</h1>
     <button id="login">Login with Google</button>
     <img id="profile" src=""/>
+    <br><br> <br>
+    <input type="text" id="messageInput" placeholder="Message" />
+    <button id="messageButton">Send message</button>
+
+    <br> <br> <br>
+
+    <form id="uploadImage" method="post" enctype="multipart/form-data">
+      <input name="file" type="file" accept="image/jpeg, image/png" />
+      <br><br>
+      <input type="text" id="titleInput" placeholder="Upload title"/>
+      <button type="submit">Upload</button>
+      <div id="preview"></div>
+    </form>
+    
     <br><br>
 
     <button id="test">test</button>
-    <br><br>
 
-    <input type="text" id="messageInput" placeholder="Enter message">
-    <button id="messageButton">Send Message</button>
     <br><br>
+    <button id="showMessages">Show Messages</button>
+    <button id="showImages">Show Images</button>
 
     <ul id="displayData"></ul>
-
+
   </body>
 </html>
