@@ -1,12 +1,8 @@
 // --- Firebase Initialization ---
 import { initializeApp } from "firebase/app";
-import {
-  getAuth, signInWithPopup, signOut, GoogleAuthProvider,
-  onAuthStateChanged, setPersistence, browserSessionPersistence
-} from "firebase/auth";
-import {
-  getDatabase, ref, push, serverTimestamp, onValue, off
-} from "firebase/database";
+import { getAuth, signInWithPopup, signOut, GoogleAuthProvider, onAuthStateChanged, setPersistence, browserSessionPersistence} from "firebase/auth";
+import { getDatabase, ref as dbRef, push, serverTimestamp, onValue, off} from "firebase/database";
+import { getStorage, ref as sRef, uploadBytes, getDownloadURL} from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDHhEExzVDJHlzwOjQSJka9qLfLpsjgNHA",
@@ -18,9 +14,11 @@ const firebaseConfig = {
   appId: "1:338672007872:web:d657aa205706bb37ee4b25",
   measurementId: "G-DDTH2KFQ5T"
 };
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+const storage = getStorage();
 const provider = new GoogleAuthProvider();
 
 // --- DOM Elements ---
@@ -32,6 +30,7 @@ const titleInput = document.getElementById('titleInput');
 const dataPlace = document.getElementById('displayData');
 const profilePic = document.getElementById('profile');
 const form = document.getElementById('uploadImage');
+const submitButton = form.querySelector('button[type="submit"]');
 const fileInput = document.querySelector('#uploadImage input[name="file"]');
 const preview = document.getElementById('preview');
 const showMessagesButton = document.getElementById('showMessages');
@@ -75,7 +74,7 @@ function loadUserMessages(user) {
   dataPlace.innerHTML = "Loading messages...";
   detachPreviousListener();
 
-  const messagesRef = ref(db, `users/${user.uid}/messages`);
+  const messagesRef = dbRef(db, `users/${user.uid}/messages`);
   currentListenerRef = messagesRef;
 
   onValue(messagesRef, (snapshot) => {
@@ -100,7 +99,7 @@ function loadUserImages(user) {
   dataPlace.innerHTML = "Loading images...";
   detachPreviousListener();
 
-  const imagesRef = ref(db, `users/${user.uid}/images`);
+  const imagesRef = dbRef(db, `users/${user.uid}/images`);
   currentListenerRef = imagesRef;
 
   onValue(imagesRef, (snapshot) => {
@@ -125,19 +124,20 @@ function loadUserImages(user) {
 function writeUserMessage(message) {
   const user = auth.currentUser;
   if (!user) return alert("Not logged in");
-  const messagesRef = ref(db, `users/${user.uid}/messages`);
+  const messagesRef = dbRef(db, `users/${user.uid}/messages`);
   return push(messagesRef, { message, timestamp: serverTimestamp() });
 }
 
 function writeUserImage(imageData, title) {
   const user = auth.currentUser;
   if (!user) return Promise.reject("Not logged in");
-  const imagesRef = ref(db, `users/${user.uid}/images`);
+  const imagesRef = dbRef(db, `users/${user.uid}/images`);
   return push(imagesRef, { image: imageData, title, timestamp: serverTimestamp() });
 }
 
 // --- UI Helpers ---
 function clearInputs() {
+  messageInput.value = ""
   fileInput.value = "";
   preview.innerHTML = "";
   titleInput.value = "";
@@ -162,46 +162,80 @@ function previewImage(file) {
   reader.readAsDataURL(file);
 }
 
+// --- Event Handler Helpers ---
+function login() {
+  const user = auth.currentUser;
+  if (!user) signInWithPopup(auth, provider).catch(console.error);
+  else signOut(auth).catch(console.error);
+}
+
+function sendMessage() {
+  const message = messageInput.value.trim();
+  if (!message) return alert("Please enter a message.");
+  writeUserMessage(message).then(() => messageInput.value = "");
+}
+
+function inputFile() {
+  const file = fileInput.files[0];
+  if (file) previewImage(file);
+} 
+
+async function submitFile() {
+  const file = fileInput.files[0];
+  const title = titleInput.value.trim();
+  if (!file || !title) return alert("Please select a file and provide a title.");
+  
+  try {
+    const uniqueName = `${file.name}_${Date.now()}`;
+    const imgStorageRef = sRef(storage, 'images/' + uniqueName);
+
+    // Upload the file
+    const snapshot = await uploadBytes(imgStorageRef, file);
+    console.log('✅ File uploaded');
+
+    // Get download URL
+    const url = await getDownloadURL(snapshot.ref);
+    console.log('✅ Got URL:', url);
+
+    // Save metadata
+    await writeUserImage(url, title);
+    console.log("✅ Metadata written");
+
+    clearInputs();
+  } catch (err) {
+    alert("❌ Something went wrong: " + err.message);
+  }
+}
+
+function showMessages() {
+  const user = auth.currentUser;
+  if (user) loadUserMessages(user);
+}
+
+function showImages() {
+  const user = auth.currentUser;
+  if (user) loadUserImages(user);
+}
+
 // --- Event Handlers ---
-function setupEventListeners() {
-  loginButton.addEventListener('click', () => {
-    const user = auth.currentUser;
-    if (!user) signInWithPopup(auth, provider).catch(console.error);
-    else signOut(auth).catch(console.error);
-  });
-
-  messageButton.addEventListener('click', () => {
-    const message = messageInput.value.trim();
-    if (!message) return alert("Please enter a message.");
-    writeUserMessage(message).then(() => messageInput.value = "");
-  });
-
-  fileInput.addEventListener('change', () => {
-    const file = fileInput.files[0];
-    if (file) previewImage(file);
-  });
+async function setupEventListeners() {
+  loginButton.addEventListener('click', login);
+  messageButton.addEventListener('click', sendMessage);
+  fileInput.addEventListener('change', inputFile);
+  showMessagesButton.addEventListener('click', showMessages);
+  showImagesButton.addEventListener('click', showImages);
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const file = fileInput.files[0];
-    const title = titleInput.value.trim();
-    if (!file || !title) return alert("Please select a file and provide a title.");
-    writeUserImage(fileInput.dataset.base64, title)
-      .then(() => {
-        console.log("✅ Image uploaded");
-        clearInputs();
-      })
-      .catch(err => alert("❌ Upload failed: " + err));
-  });
 
-  showMessagesButton.addEventListener('click', () => {
-    const user = auth.currentUser;
-    if (user) loadUserMessages(user);
-  });
+    submitButton.disabled = true;
+    submitButton.textContent = 'Uploading...';
 
-  showImagesButton.addEventListener('click', () => {
-    const user = auth.currentUser;
-    if (user) loadUserImages(user);
+    submitFile().then(() => { 
+      submitButton.disabled = false;
+      submitButton.textContent = 'Upload';
+    });
+
   });
 
   testButton.addEventListener('click', () => {

@@ -17,6 +17,8 @@ https://firebase.google.com/docs/database/web/read-and-write
 # firestore
 https://console.firebase.google.com/u/0/project/testpage-ad7e1/storage/testpage-ad7e1.firebasestorage.app/files
 
-https://firebase.google.com/docs/firestore/query-data/get-data 
+https://firebase.google.com/docs/storage
 
-https://firebase.google.com/docs/firestore/manage-data/add-data
+
+--devsite-secondary-text-color: rgba(0,0,0,.6);
+--devsite-primary-color: #0b57d0;
