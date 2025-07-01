@@ -1,7 +1,7 @@
 // --- Firebase Initialization ---
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, signOut, GoogleAuthProvider, onAuthStateChanged, setPersistence, browserSessionPersistence} from "firebase/auth";
-import { getDatabase, ref as dbRef, push, serverTimestamp, onValue, off} from "firebase/database";
+import { getDatabase, ref as dbRef, push, serverTimestamp, onValue, off, remove, update} from "firebase/database";
 import { getStorage, ref as sRef, uploadBytes, getDownloadURL} from "firebase/storage";
 import { firebaseConfig } from "./config";
 
@@ -72,13 +72,22 @@ function loadUserMessages(user) {
       dataPlace.innerHTML = "No messages found.";
       return;
     }
-
-    let html = Object.values(data).map(({ message, timestamp }) => `
-      <p><strong>Message:</strong> ${message}<br>
-      <strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</p><hr>
+    
+    // <button class="save-button" data-key="${key}">💾</button>
+    let html = Object.entries(data).map(([key, { message, timestamp }]) => `
+      <div>
+        <button class="delete-button" data-key="${key}">🗑️</button>
+        <br>
+        <span><strong>Message:</strong> ${message}</span>
+        <button class="edit-message-button" data-key="${key}" data-message="${message}">🖊️</button>
+        <br>
+        <span><strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</span>
+        <hr>
+      </div>
     `).reverse().join("");
 
     dataPlace.innerHTML = html;
+
   });
 }
 
@@ -108,7 +117,7 @@ function loadUserImages(user) {
   });
 }
 
-// --- Database Write ---
+// --- Database Edit ---
 function writeUserMessage(message) {
   const user = auth.currentUser;
   if (!user) return alert("Not logged in");
@@ -121,6 +130,20 @@ function writeUserImage(imageData, title) {
   if (!user) return Promise.reject("Not logged in");
   const imagesRef = dbRef(db, `users/${user.uid}/images`);
   return push(imagesRef, { image: imageData, title, timestamp: serverTimestamp() });
+}
+
+function deleteMessage(key){
+  const user = auth.currentUser;
+  if (!user) return alert("Not logged in");
+  const messageRef = dbRef(db, `users/${user.uid}/messages/${key}`);
+  return remove(messageRef);
+}
+
+function editMessage(key, newMessage){
+  const user = auth.currentUser;
+  if (!user) return alert("Not logged in");
+  const messageRef = dbRef(db, `users/${user.uid}/messages/${key}`);
+  return update(messageRef, {"/message": newMessage});
 }
 
 // --- UI Helpers ---
@@ -212,6 +235,21 @@ async function setupEventListeners() {
   fileInput.addEventListener('change', inputFile);
   showMessagesButton.addEventListener('click', showMessages);
   showImagesButton.addEventListener('click', showImages);
+
+  dataPlace.addEventListener('click', (e) => {
+    const btn = e.target;
+    const key = btn.dataset.key;
+    const message = btn.dataset.message;
+
+    if (btn.matches('.delete-button')) {
+      if (confirm("Confirm delete?")) deleteMessage(key).then(btn.parentElement.remove());
+    }
+    else if (btn.matches('.edit-message-button')) {
+      let newMessage = prompt("Enter new message:", message);
+      if (newMessage != null && newMessage != "") editMessage(key, newMessage);
+    }
+    else if (btn.matches('.save-button')) saveMessage(key)
+  });
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
