@@ -22,3 +22,9 @@ https://firebase.google.com/docs/storage
 
 --devsite-secondary-text-color: rgba(0,0,0,.6);
 --devsite-primary-color: #0b57d0;
+
+
+# TODO
+* change image edits so you choose to upload
+*add capcha
+
