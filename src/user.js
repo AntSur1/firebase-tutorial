@@ -37,8 +37,12 @@ function loadUserMessages(user) {
     }
 
     let html = Object.values(data).map(({ message, timestamp }) => `
-      <p><strong>Message:</strong> ${message}<br>
-      <strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</p><hr>
+      <div>
+        <span><strong>Message:</strong> ${message}</span>
+        <br>
+        <span><strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</span>
+        <hr>
+      </div>
     `).reverse().join("");
 
     dataPlace.innerHTML = html;
@@ -61,10 +65,15 @@ function loadUserImages(user) {
 
     let html = Object.values(data).map(({ image, title, timestamp }) => `
       <div style="margin-bottom: 20px;">
-        <strong>Title:</strong> ${title}<br>
-        <strong>Time:</strong> ${new Date(timestamp).toLocaleString()}<br>
+        <span><strong>Title:</strong> ${title}<span>
+        <br>
+        <span><strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</span>
+        <br>
+        <span><strong>Image ↓</strong></span>
+        <br>
         <img src="${image}" alt="${title}" style="max-width: 300px; display: block; margin-top: 10px;">
-      </div><hr>
+        <hr>
+        </div>
     `).reverse().join("");
 
     dataPlace.innerHTML = html;
