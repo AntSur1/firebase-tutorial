@@ -54,8 +54,13 @@ function onUserStateChanged(user) {
     console.log("❌ No user signed in.");
     profilePic.src = "";
     loginButton.textContent = "Login with Google";
-    dataPlace.innerHTML = "";
+    //dataPlace.innerHTML = "";
   }
+}
+
+function checkIfAuth(user){
+  if (!user) alert("Not logged in");
+  else if (user.uid != "wgDE9laS5FaN6FCwDGK467xlkXB2") alert("Premission denied")
 }
 
 // --- Database Read ---
@@ -76,7 +81,7 @@ function loadUserMessages(user) {
     // <button class="save-button" data-key="${key}">💾</button>
     let html = Object.entries(data).map(([key, { message, timestamp }]) => `
       <div>
-        <button class="delete-button" data-key="${key}">🗑️</button>
+        <button class="delete-message-button" data-key="${key}">🗑️</button>
         <br>
         <span><strong>Message:</strong> ${message}</span>
         <button class="edit-message-button" data-key="${key}" data-message="${message}">🖊️</button>
@@ -105,12 +110,21 @@ function loadUserImages(user) {
       return;
     }
 
-    let html = Object.values(data).map(({ image, title, timestamp }) => `
+    let html = Object.entries(data).map(([key, { image, title, timestamp }]) => `
       <div style="margin-bottom: 20px;">
-        <strong>Title:</strong> ${title}<br>
-        <strong>Time:</strong> ${new Date(timestamp).toLocaleString()}<br>
+        <button class="delete-image-button" data-key="${key}">🗑️</button>
+        <br>
+        <span><strong>Title:</strong> ${title}<span>
+        <button class="edit-title-button" data-key="${key}" data-title="${title}">🖊️</button>
+        <br>
+        <span><strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</span>
+        <br>
+        <span><strong>Image ↓</strong></span>
+        <button class="edit-image-button" data-key="${key}" data-image="${image}">🖊️</button>
+        <br>
         <img src="${image}" alt="${title}" style="max-width: 300px; display: block; margin-top: 10px;">
-      </div><hr>
+        <hr>
+        </div>
     `).reverse().join("");
 
     dataPlace.innerHTML = html;
@@ -120,7 +134,7 @@ function loadUserImages(user) {
 // --- Database Edit ---
 function writeUserMessage(message) {
   const user = auth.currentUser;
-  if (!user) return alert("Not logged in");
+checkIfAuth(user);
   const messagesRef = dbRef(db, `users/${user.uid}/messages`);
   return push(messagesRef, { message, timestamp: serverTimestamp() });
 }
@@ -134,16 +148,37 @@ function writeUserImage(imageData, title) {
 
 function deleteMessage(key){
   const user = auth.currentUser;
-  if (!user) return alert("Not logged in");
+  checkIfAuth(user);
   const messageRef = dbRef(db, `users/${user.uid}/messages/${key}`);
+  return remove(messageRef);
+}
+
+function deleteImage(key){
+  const user = auth.currentUser;
+  checkIfAuth(user);
+  const messageRef = dbRef(db, `users/${user.uid}/images/${key}`);
   return remove(messageRef);
 }
 
 function editMessage(key, newMessage){
   const user = auth.currentUser;
-  if (!user) return alert("Not logged in");
+  checkIfAuth(user);
   const messageRef = dbRef(db, `users/${user.uid}/messages/${key}`);
   return update(messageRef, {"/message": newMessage});
+}
+
+function editTitle(key, newTitle){
+  const user = auth.currentUser;
+  checkIfAuth(user);
+  const messageRef = dbRef(db, `users/${user.uid}/images/${key}`);
+  return update(messageRef, {"/title": newTitle});
+}
+
+function editImage(key, newImage){
+  const user = auth.currentUser;
+  checkIfAuth(user);
+  const messageRef = dbRef(db, `users/${user.uid}/images/${key}`);
+  return update(messageRef, {"/image": newImage});
 }
 
 // --- UI Helpers ---
@@ -240,15 +275,27 @@ async function setupEventListeners() {
     const btn = e.target;
     const key = btn.dataset.key;
     const message = btn.dataset.message;
+    const title = btn.dataset.title;
+    const image = btn.dataset.image;
 
-    if (btn.matches('.delete-button')) {
+    if (btn.matches('.delete-message-button')) {
       if (confirm("Confirm delete?")) deleteMessage(key).then(btn.parentElement.remove());
     }
-    else if (btn.matches('.edit-message-button')) {
-      let newMessage = prompt("Enter new message:", message);
-      if (newMessage != null && newMessage != "") editMessage(key, newMessage);
+    else if (btn.matches('.delete-image-button')) {
+      if (confirm("Confirm delete?")) deleteImage(key).then(btn.parentElement.remove());
     }
-    else if (btn.matches('.save-button')) saveMessage(key)
+    else if (btn.matches('.edit-message-button')) {
+      const newMessage = prompt("Enter new message:", message);
+      if (newMessage != null && newMessage != "") editMessage(key, newMessage).then(console.log("message Eddited"));
+    }
+    else if (btn.matches('.edit-title-button')) {
+      const newTitle = prompt("Enter new title:", title);
+      if (newTitle != null && newTitle != "") editTitle(key, newTitle).then(console.log("Title eddited"));
+    }
+    else if (btn.matches('.edit-image-button')) {
+      const newImage = prompt("Enter new image URL:", image);
+      if (newImage != null && newImage != "") editImage(key, newImage).then(console.log("Image eddited"));
+    }
   });
 
   form.addEventListener('submit', (e) => {
