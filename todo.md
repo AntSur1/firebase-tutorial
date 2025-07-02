@@ -25,6 +25,7 @@ https://firebase.google.com/docs/storage
 
 
 # TODO
-* change image edits so you choose to upload
+* change image edits so you delete old image
+* use cashing preferably
 * add capcha
 * only uyse free services

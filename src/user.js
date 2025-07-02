@@ -1,36 +1,31 @@
 
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref as dbRef, onValue, off} from "firebase/database";
+import { getDatabase, ref as dbRef, get} from "firebase/database";
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { firebaseConfig } from "./config";
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const appCheck = initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider('6Le-LXUrAAAAAAxKm034g5E9dpEN9KlLcRaOgZcG'),
+  isTokenAutoRefreshEnabled: true
+});
 
 // --- DOM Elements ---
 const showMessagesButton = document.getElementById('showMessages');
 const showImagesButton = document.getElementById('showImages');
 const dataPlace = document.getElementById('displayData');
 
-// --- State ---
-let currentListenerRef = null;
-
-function detachPreviousListener() {
-  if (currentListenerRef) {
-    off(currentListenerRef);
-    currentListenerRef = null;
-  }
-}
-
 // --- Database Read ---
-function loadUserMessages(user) {
+async function loadUserMessages(user) {
   dataPlace.innerHTML = "Loading messages...";
-  detachPreviousListener();
 
   const messagesRef = dbRef(db, `users/${user.uid}/messages`);
-  currentListenerRef = messagesRef;
 
-  onValue(messagesRef, (snapshot) => {
+  try {
+    const snapshot = await get(messagesRef);
     const data = snapshot.val();
+
     if (!data) {
       dataPlace.innerHTML = "No messages found.";
       return;
@@ -46,18 +41,23 @@ function loadUserMessages(user) {
     `).reverse().join("");
 
     dataPlace.innerHTML = html;
-  });
+
+  } catch (error) {
+    console.error("Failed to load messages:", error);
+    dataPlace.innerHTML = "Error loading messages.";
+  }
 }
 
-function loadUserImages(user) {
+async function loadUserImages(user) {
   dataPlace.innerHTML = "Loading images...";
-  detachPreviousListener();
 
   const imagesRef = dbRef(db, `users/${user.uid}/images`);
-  currentListenerRef = imagesRef;
 
-  onValue(imagesRef, (snapshot) => {
+
+  try {
+    const snapshot = await get(imagesRef);
     const data = snapshot.val();
+
     if (!data) {
       dataPlace.innerHTML = "No images found.";
       return;
@@ -77,7 +77,10 @@ function loadUserImages(user) {
     `).reverse().join("");
 
     dataPlace.innerHTML = html;
-  });
+  } catch (error) {
+    console.error("Failed to load images:", error);
+    dataPlace.innerHTML = "Error loading images.";
+  }
 }
 
 const user = {uid: "wgDE9laS5FaN6FCwDGK467xlkXB2"}
