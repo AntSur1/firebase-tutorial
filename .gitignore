@@ -5,10 +5,10 @@ logs
 node_modules
 dist
 dist-ssr
+todo.md
 *.local
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 
-todo.md
