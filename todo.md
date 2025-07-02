@@ -26,5 +26,5 @@ https://firebase.google.com/docs/storage
 
 # TODO
 * change image edits so you choose to upload
-*add capcha
-
+* add capcha
+* only uyse free services

@@ -25,9 +25,11 @@ const preview = document.getElementById('preview');
 const showMessagesButton = document.getElementById('showMessages');
 const showImagesButton = document.getElementById('showImages');
 const dataPlace = document.getElementById('displayData');
+const editImageInput = document.getElementById('editImageInput');
 
 // --- State ---
-export let currentListenerRef = null;
+let currentListenerRef = null;
+let pendingEditKey = null;
 
 function detachPreviousListener() {
   if (currentListenerRef) {
@@ -255,11 +257,13 @@ async function submitFile() {
 
 function showMessages() {
   const user = auth.currentUser;
+  checkIfAuth(user);
   if (user) loadUserMessages(user);
 }
 
 function showImages() {
   const user = auth.currentUser;
+  checkIfAuth(user);
   if (user) loadUserImages(user);
 }
 
@@ -293,8 +297,32 @@ async function setupEventListeners() {
       if (newTitle != null && newTitle != "") editTitle(key, newTitle).then(console.log("Title eddited"));
     }
     else if (btn.matches('.edit-image-button')) {
-      const newImage = prompt("Enter new image URL:", image);
-      if (newImage != null && newImage != "") editImage(key, newImage).then(console.log("Image eddited"));
+      pendingEditKey = key;
+      editImageInput.click();
+      // const newImage = prompt("Enter new image URL:", image);
+      // if (newImage != null && newImage != "") editImage(key, newImage).then(console.log("Image eddited"));
+    }
+  });
+
+  editImageInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !pendingEditKey) return;
+
+    try {
+      const uniqueName = `${file.name}_${Date.now()}`;
+      const imgStorageRef = sRef(storage, 'images/' + uniqueName);
+
+      const snapshot = await uploadBytes(imgStorageRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+
+      await editImage(pendingEditKey, url);
+      console.log("✅ Image updated");
+
+      pendingEditKey = null;
+      editImageInput.value = "";
+
+    } catch (err) {
+      console.error("❌ Error editing image:", err);
     }
   });
 
