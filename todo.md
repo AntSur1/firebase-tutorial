@@ -20,6 +20,10 @@ https://console.firebase.google.com/u/0/project/testpage-ad7e1/storage/testpage-
 https://firebase.google.com/docs/storage
 
 
+# reCaptcha
+https://www.google.com/recaptcha/admin/site/729099710/setup 
+
+
 --devsite-secondary-text-color: rgba(0,0,0,.6);
 --devsite-primary-color: #0b57d0;
 
