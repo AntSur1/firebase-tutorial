@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, signOut, GoogleAuthProvider, onAuthStateChanged, setPersistence, browserSessionPersistence} from "firebase/auth";
 import { getDatabase, ref as dbRef, push, serverTimestamp, onValue, off, remove, update} from "firebase/database";
-import { getStorage, ref as sRef, uploadBytes, getDownloadURL} from "firebase/storage";
+// import { getStorage, ref as sRef, uploadBytes, getDownloadURL} from "firebase/storage";
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { firebaseConfig } from "./config";
 
@@ -11,10 +11,10 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 const storage = getStorage();
 const provider = new GoogleAuthProvider();
-const appCheck = initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider('6Le-LXUrAAAAAAxKm034g5E9dpEN9KlLcRaOgZcG'),
-  isTokenAutoRefreshEnabled: true
-});
+// const appCheck = initializeAppCheck(app, {
+//   provider: new ReCaptchaV3Provider('6Le-LXUrAAAAAAxKm034g5E9dpEN9KlLcRaOgZcG'),
+//   isTokenAutoRefreshEnabled: true
+// });
 
 
 // --- DOM Elements ---
@@ -142,7 +142,7 @@ function loadUserImages(user) {
 // --- Database Edit ---
 function writeUserMessage(message) {
   const user = auth.currentUser;
-checkIfAuth(user);
+ checkIfAuth(user);
   const messagesRef = dbRef(db, `users/${user.uid}/messages`);
   return push(messagesRef, { message, timestamp: serverTimestamp() });
 }
