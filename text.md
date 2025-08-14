@@ -28,6 +28,12 @@ https://imagekit.io/docs/integration/javascript#uploading-files
 https://imagekit.io/dashboard/media-library/L25hdGk
 
 
+# vercel
+vercel --prod
+
+https://vercel.com/antsur1s-projects/backend/3p6K5K7fDzbKzR6Wk58csNJjTEib
+
+
 # reCaptcha
 https://www.google.com/recaptcha/admin/site/729099710/setup 
 
@@ -41,3 +47,4 @@ https://www.google.com/recaptcha/admin/site/729099710/setup
 * use cashing preferably
 * add capcha
 * only uyse free services
+
