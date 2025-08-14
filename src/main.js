@@ -5,16 +5,21 @@ import { getDatabase, ref as dbRef, push, serverTimestamp, onValue, off, remove,
 // import { getStorage, ref as sRef, uploadBytes, getDownloadURL} from "firebase/storage";
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { firebaseConfig } from "./config";
+import ImageKit from "imagekit-javascript";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 // const storage = getStorage();
 const provider = new GoogleAuthProvider();
-// const appCheck = initializeAppCheck(app, {
-//   provider: new ReCaptchaV3Provider('6Le-LXUrAAAAAAxKm034g5E9dpEN9KlLcRaOgZcG'),
-//   isTokenAutoRefreshEnabled: true
-// });
+const appCheck = initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider('6Le-LXUrAAAAAAxKm034g5E9dpEN9KlLcRaOgZcG'),
+  isTokenAutoRefreshEnabled: true
+});
+const imagekit = new ImageKit({
+  publicKey: "public_nlaLJjT4YJ94UMgjgp62jAPmkVo=",
+  urlEndpoint: "https://ik.imagekit.io/natka/"
+});
 
 
 // --- DOM Elements ---
@@ -53,7 +58,9 @@ async function setupAuthPersistence() {
   }
 }
 
-async function getImagekitAuth(user){
+async function getImagekitAuth(){
+  let user = auth.currentUser;
+  checkIfAuth(user)
   const token = await user.getIdToken();
   const res = await fetch("https://backend-five-alpha-26.vercel.app/api/getSignature", {
     method: "GET",
@@ -64,9 +71,11 @@ async function getImagekitAuth(user){
   if (!res.ok) {
     throw new Error(data.error || "Failed to get ImageKit auth");
   }
-  return data;
+  return data.data;
 
 }
+
+
 
 function onUserStateChanged(user) {
   if (user) {
@@ -254,28 +263,32 @@ function inputFile() {
   if (file) previewImage(file);
 } 
 
-// async function submitFile() {
-//   const file = fileInput.files[0];
-//   const title = titleInput.value.trim();
-//   if (!file || !title) return alert("Please select a file and provide a title.");
+async function submitFile() {
+  const file = fileInput.files[0];
+  const title = titleInput.value.trim();
+  if (!file || !title) return alert("Please select a file and provide a title.");
   
-//   try {
-//     const uniqueName = `${file.name}_${Date.now()}`;
-//     const imgStorageRef = sRef(storage, 'images/' + uniqueName);
+  try {
+    const uniqueName = `${file.name}_${Date.now()}`;
+    const authParams = await getImagekitAuth();
 
-//     const snapshot = await uploadBytes(imgStorageRef, file);
-//     console.log('✅ File uploaded');
+    const res = await imagekit.upload({
+      file: file,
+      fileName: uniqueName,
+      folder: "/nati",
+      token: authParams.token,
+      expire: authParams.expire,
+      signature: authParams.signature
+    });
+    console.log('✅ Got URL:', res.url);
 
-//     const url = await getDownloadURL(snapshot.ref);
-//     console.log('✅ Got URL:', url);
+    await writeUserImage(res.url, title);
+    console.log("✅ Metadata written");
 
-//     await writeUserImage(url, title);
-//     console.log("✅ Metadata written");
-
-//   } catch (err) {
-//     console.error("❌ Something went wrong: " + err.message);
-//   }
-// }
+  } catch (err) {
+    console.error("❌ Upload went wrong: " + err.message);
+  }
+}
 
 function showMessages() {
   const user = auth.currentUser;
@@ -354,11 +367,11 @@ async function setupEventListeners() {
     submitButton.disabled = true;
     submitButton.textContent = 'Uploading...';
 
-    // submitFile().then(() => { 
-    //   clearInputs();
-    //   submitButton.disabled = false;
-    //   submitButton.textContent = 'Upload';
-    // });
+    submitFile().then(() => { 
+      clearInputs();
+      submitButton.disabled = false;
+      submitButton.textContent = 'Upload';
+    });
 
   });
 
