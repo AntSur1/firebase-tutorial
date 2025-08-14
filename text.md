@@ -22,6 +22,10 @@ https://console.firebase.google.com/u/0/project/testpage-ad7e1/storage/testpage-
 https://firebase.google.com/docs/storage
 
 
+# imagekit
+https://imagekit.io/docs/integration/javascript#uploading-files 
+
+
 # reCaptcha
 https://www.google.com/recaptcha/admin/site/729099710/setup 
 

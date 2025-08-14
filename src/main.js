@@ -9,7 +9,7 @@ import { firebaseConfig } from "./config";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
-const storage = getStorage();
+// const storage = getStorage();
 const provider = new GoogleAuthProvider();
 // const appCheck = initializeAppCheck(app, {
 //   provider: new ReCaptchaV3Provider('6Le-LXUrAAAAAAxKm034g5E9dpEN9KlLcRaOgZcG'),
@@ -53,11 +53,27 @@ async function setupAuthPersistence() {
   }
 }
 
+async function getImagekitAuth(user){
+  const token = await user.getIdToken();
+  const res = await fetch("https://backend-five-alpha-26.vercel.app/api/getSignature", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to get ImageKit auth");
+  }
+  return data;
+
+}
+
 function onUserStateChanged(user) {
   if (user) {
     console.log("✅ User signed in:", user.displayName);
     profilePic.src = user.photoURL || "";
     loginButton.textContent = "Log out";
+
   } else {
     console.log("❌ No user signed in.");
     profilePic.src = "";
@@ -238,28 +254,28 @@ function inputFile() {
   if (file) previewImage(file);
 } 
 
-async function submitFile() {
-  const file = fileInput.files[0];
-  const title = titleInput.value.trim();
-  if (!file || !title) return alert("Please select a file and provide a title.");
+// async function submitFile() {
+//   const file = fileInput.files[0];
+//   const title = titleInput.value.trim();
+//   if (!file || !title) return alert("Please select a file and provide a title.");
   
-  try {
-    const uniqueName = `${file.name}_${Date.now()}`;
-    const imgStorageRef = sRef(storage, 'images/' + uniqueName);
+//   try {
+//     const uniqueName = `${file.name}_${Date.now()}`;
+//     const imgStorageRef = sRef(storage, 'images/' + uniqueName);
 
-    const snapshot = await uploadBytes(imgStorageRef, file);
-    console.log('✅ File uploaded');
+//     const snapshot = await uploadBytes(imgStorageRef, file);
+//     console.log('✅ File uploaded');
 
-    const url = await getDownloadURL(snapshot.ref);
-    console.log('✅ Got URL:', url);
+//     const url = await getDownloadURL(snapshot.ref);
+//     console.log('✅ Got URL:', url);
 
-    await writeUserImage(url, title);
-    console.log("✅ Metadata written");
+//     await writeUserImage(url, title);
+//     console.log("✅ Metadata written");
 
-  } catch (err) {
-    console.error("❌ Something went wrong: " + err.message);
-  }
-}
+//   } catch (err) {
+//     console.error("❌ Something went wrong: " + err.message);
+//   }
+// }
 
 function showMessages() {
   const user = auth.currentUser;
@@ -314,22 +330,22 @@ async function setupEventListeners() {
     const file = e.target.files[0];
     if (!file || !pendingEditKey) return;
 
-    try {
-      const uniqueName = `${file.name}_${Date.now()}`;
-      const imgStorageRef = sRef(storage, 'images/' + uniqueName);
+    // try {
+    //   const uniqueName = `${file.name}_${Date.now()}`;
+    //   const imgStorageRef = sRef(storage, 'images/' + uniqueName);
 
-      const snapshot = await uploadBytes(imgStorageRef, file);
-      const url = await getDownloadURL(snapshot.ref);
+    //   const snapshot = await uploadBytes(imgStorageRef, file);
+    //   const url = await getDownloadURL(snapshot.ref);
 
-      await editImage(pendingEditKey, url);
-      console.log("✅ Image updated");
+    //   await editImage(pendingEditKey, url);
+    //   console.log("✅ Image updated");
 
-      pendingEditKey = null;
-      editImageInput.value = "";
+    //   pendingEditKey = null;
+    //   editImageInput.value = "";
 
-    } catch (err) {
-      console.error("❌ Error editing image:", err);
-    }
+    // } catch (err) {
+    //   console.error("❌ Error editing image:", err);
+    // }
   });
 
   form.addEventListener('submit', (e) => {
@@ -338,11 +354,11 @@ async function setupEventListeners() {
     submitButton.disabled = true;
     submitButton.textContent = 'Uploading...';
 
-    submitFile().then(() => { 
-      clearInputs();
-      submitButton.disabled = false;
-      submitButton.textContent = 'Upload';
-    });
+    // submitFile().then(() => { 
+    //   clearInputs();
+    //   submitButton.disabled = false;
+    //   submitButton.textContent = 'Upload';
+    // });
 
   });
 
