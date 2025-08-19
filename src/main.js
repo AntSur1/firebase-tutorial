@@ -2,7 +2,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, signOut, GoogleAuthProvider, onAuthStateChanged, setPersistence, browserSessionPersistence} from "firebase/auth";
 import { getDatabase, ref as dbRef, push, serverTimestamp, onValue, off, remove, update} from "firebase/database";
-// import { getStorage, ref as sRef, uploadBytes, getDownloadURL} from "firebase/storage";
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { firebaseConfig } from "./config";
 import ImageKit from "imagekit-javascript";
@@ -10,7 +9,6 @@ import ImageKit from "imagekit-javascript";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
-// const storage = getStorage();
 const provider = new GoogleAuthProvider();
 const appCheck = initializeAppCheck(app, {
   provider: new ReCaptchaV3Provider('6Le-LXUrAAAAAAxKm034g5E9dpEN9KlLcRaOgZcG'),
@@ -40,7 +38,7 @@ const editImageInput = document.getElementById('editImageInput');
 
 // --- State ---
 let currentListenerRef = null;
-let pendingEditKey = null;
+// let pendingEditKey = null;
 
 function detachPreviousListener() {
   if (currentListenerRef) {
@@ -74,8 +72,6 @@ async function getImagekitAuth(){
   return data.data;
 
 }
-
-
 
 function onUserStateChanged(user) {
   if (user) {
@@ -167,7 +163,7 @@ function loadUserImages(user) {
 // --- Database Edit ---
 function writeUserMessage(message) {
   const user = auth.currentUser;
- checkIfAuth(user);
+  checkIfAuth(user);
   const messagesRef = dbRef(db, `users/${user.uid}/messages`);
   return push(messagesRef, { message, timestamp: serverTimestamp() });
 }
@@ -189,8 +185,8 @@ function deleteMessage(key){
 function deleteImage(key){
   const user = auth.currentUser;
   checkIfAuth(user);
-  const messageRef = dbRef(db, `users/${user.uid}/images/${key}`);
-  return remove(messageRef);
+  const imageRef = dbRef(db, `users/${user.uid}/images/${key}`);
+  return remove(imageRef);
 }
 
 function editMessage(key, newMessage){
@@ -325,41 +321,41 @@ async function setupEventListeners() {
     }
     else if (btn.matches('.edit-message-button')) {
       const newMessage = prompt("Enter new message:", message);
-      if (newMessage != null && newMessage != "") editMessage(key, newMessage).then(console.log("message Eddited"));
+      if (newMessage != null && newMessage != "") editMessage(key, newMessage).then(console.log("message edited"));
     }
     else if (btn.matches('.edit-title-button')) {
       const newTitle = prompt("Enter new title:", title);
-      if (newTitle != null && newTitle != "") editTitle(key, newTitle).then(console.log("Title eddited"));
+      if (newTitle != null && newTitle != "") editTitle(key, newTitle).then(console.log("Title edited"));
     }
     else if (btn.matches('.edit-image-button')) {
-      pendingEditKey = key;
-      editImageInput.click();
-      // const newImage = prompt("Enter new image URL:", image);
-      // if (newImage != null && newImage != "") editImage(key, newImage).then(console.log("Image eddited"));
+      // pendingEditKey = key;
+      // editImageInput.click();
+      const newImage = prompt("Enter new image URL:", image);
+      if (newImage != null && newImage != "") editImage(key, newImage).then(console.log("Image edited"));
     }
   });
 
-  editImageInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file || !pendingEditKey) return;
+  // editImageInput.addEventListener('change', async (e) => {
+  //   const file = e.target.files[0];
+  //   if (!file || !pendingEditKey) return;
 
-    // try {
-    //   const uniqueName = `${file.name}_${Date.now()}`;
-    //   const imgStorageRef = sRef(storage, 'images/' + uniqueName);
+  //   try {
+  //     const uniqueName = `${file.name}_${Date.now()}`;
+  //     const imgStorageRef = sRef(storage, 'images/' + uniqueName);
 
-    //   const snapshot = await uploadBytes(imgStorageRef, file);
-    //   const url = await getDownloadURL(snapshot.ref);
+  //     const snapshot = await uploadBytes(imgStorageRef, file);
+  //     const url = await getDownloadURL(snapshot.ref);
 
-    //   await editImage(pendingEditKey, url);
-    //   console.log("✅ Image updated");
+  //     await editImage(pendingEditKey, url);
+  //     console.log("✅ Image updated");
 
-    //   pendingEditKey = null;
-    //   editImageInput.value = "";
+  //     pendingEditKey = null;
+  //     editImageInput.value = "";
 
-    // } catch (err) {
-    //   console.error("❌ Error editing image:", err);
-    // }
-  });
+  //   } catch (err) {
+  //     console.error("❌ Error editing image:", err);
+  //   }
+  // });
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
